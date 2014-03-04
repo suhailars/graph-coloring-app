@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head><title>Graph</title>
+<div align = "center">
+<canvas id="canvas" width="650" height="450" style="border:5px solid black; background-color:white;"></canvas><br>
+
+<input type = "button" value = "Color it" onclick = "post()" >
+<input type = "button" value = "Reset" onclick = "resete()">
+</head>
+{% load static %}
+<strong><link rel="stylesheet" href="{% static 'css/colorit.css' %}"></strong>
+<p> Double click to create a node </p>
+<p> Single click on a node to select it</p>
+<p> Click on nodes one by one to connect them</p>
+</div>
+<script type="text/javascript" src="{% static 'js/min.js' %}"></script>
+<script>
+var canvas = document.getElementById("canvas");
+canvas.onselectstart = function () { return false; }
+var context = canvas.getContext('2d');
+var nodeId = 0, edge = 0;
+var node_array = [], adj_list = {};
+var colorset = ['#1C370A', '#2AEAAA', '#2A8AEA', '#FFFF0C', '#08080A', '#DF6016', '#0FA658', '#EC7EF8'];
+canvas.ondblclick = drawVertex;
+canvas.onclick = colorVertex;
+function drawVertex(e){
+var x = e.pageX - this.offsetLeft;
+var y = e.pageY - this.offsetTop;
+context.beginPath();
+context.arc(x-12,y-12,20, 0, Math.PI*2, true); 
+context.closePath();
+context.fillStyle = "#000000"
+context.fill();
+nodeId += 1
+context.fillText(nodeId, x-40, y-10);
+node_array.push({'id': nodeId, 'x': x-12, 'y': y-12})
+}
+
+function colorVertex(e){
+var cx = e.pageX - this.offsetLeft;
+var cy = e.pageY - this.offsetTop;
+for(var i=0;i<node_array.length;i++){
+    var nx = node_array[i]['x'], ny = node_array[i]['y'];
+	if(!adj_list[i+1]){
+          adj_list[i+1] = [];
+        }
+    if(cx-4 <= nx+20 && cx-4 >= nx-20 && cy-8 <= ny+20 && cy-8 >= ny-20){
+	
+	if(edge == 0){
+		sx = nx;
+		sy = ny;
+		context.fillStyle = "#B39A9A";
+		edge = 1;
+		startv = i+1;
+	}
+	else{
+		context.beginPath();
+		context.moveTo(sx, sy);
+		context.lineTo(nx, ny);
+		context.stroke();
+		context.closePath();
+		context.fillStyle = "#000000";
+		edge = 0;
+		adj_list[startv].push(node_array[i]["id"]);
+		adj_list[node_array[i].id].push(node_array[startv-1]["id"]);
+	}
+	context.beginPath();
+	context.arc(sx,sy,20, 0, Math.PI*2, true); 
+	context.closePath();
+	context.fill();
+ }
+}
+}
+function post(){
+  $.post("/", {adj_data: JSON.stringify(adj_list)}, function(data, status) {
+               colorit(JSON.parse(data));
+       });
+}
+function colorit(data){
+  for(var i=0;i<=node_array.length;i++){
+    context.fillStyle = colorset[data[i+1]];
+    context.beginPath();
+    context.arc(node_array[i].x, node_array[i].y, 20, 0 , 2 * Math.PI, false);
+    context.fill();
+    context.closePath();  
+  }
+}
+function resete(){
+	document.location.href="/"; 
+}
+</script>
+</html>
